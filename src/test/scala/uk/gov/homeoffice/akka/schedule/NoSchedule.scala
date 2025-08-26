@@ -1,6 +1,6 @@
 package uk.gov.homeoffice.akka.schedule
 
-import akka.actor.Cancellable
+import org.apache.pekko.actor.Cancellable
 
 /**
  * Why provide a "no schedule" such that a scheduled Actor will not periodically "wake up" and perform its duties?

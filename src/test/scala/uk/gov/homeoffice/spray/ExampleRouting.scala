@@ -1,6 +1,6 @@
 package uk.gov.homeoffice.spray
 
-import spray.http.MediaTypes._
+import org.apache.pekko.http.scaladsl.model.MediaTypes._
 import org.json4s.JsonAST.{JObject, JString}
 
 object ExampleRouting extends ExampleRouting
@@ -10,11 +10,11 @@ trait ExampleRouting extends Routing {
    pathPrefix("example") {
      pathEndOrSingleSlash {
        get {
-         respondWithMediaType(`application/json`) {
+         //respondWithMediaType(`application/json`) {
            complete {
              JObject("status" -> JString("Congratulations"))
            }
-         }
+         //}
        }
      } ~
      post {

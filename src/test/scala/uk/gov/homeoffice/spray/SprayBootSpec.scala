@@ -1,11 +1,11 @@
 package uk.gov.homeoffice.spray
 
-import akka.actor.{ActorRef, ActorSystem}
-import spray.http.MediaTypes._
-import spray.http.StatusCodes._
-import spray.http.{HttpEntity, HttpResponse}
-import spray.httpx.Json4sSupport
-import spray.routing._
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.http.scaladsl.model.MediaTypes._
+import org.apache.pekko.http.scaladsl.model.StatusCodes._
+import org.apache.pekko.http.scaladsl.model.{HttpEntity, HttpResponse}
+import org.apache.pekko.http.scaladsl.server._
+import org.apache.pekko.routing._
 import org.json4s.JsonAST.{JObject, JString}
 import org.json4s.jackson.JsonMethods._
 import org.specs2.mutable.Specification
@@ -16,19 +16,19 @@ import uk.gov.homeoffice.json.JsonFormats
 
 class SprayBootSpec extends Specification {
   trait Context extends Scope with SprayBoot with App with LocalConfig {
-    implicit lazy val sprayActorSystem = ActorSystem("spray-boot-spec-spray-can")
+    implicit lazy val sprayActorSystem :ActorSystem = ActorSystem("spray-boot-spec-spray-can")
 
-    override def bootHttpService(routeHttpService: ActorRef) = {}
+    override def bootHttpService(route: Route) = {}
   }
 
   "Booting Spray" should {
     "be successful" in new Context {
-      bootRoutings(ExampleRouting)
+      bootRoutings(Seq(ExampleRouting))
       ok
     }
 
     "fail because of not providing any routes" in new Context {
-      bootRoutings(Seq.empty[Routing]) must throwAn[IllegalArgumentException](message = "requirement failed: No routes declared")
+      bootRoutings(Seq.empty) must throwAn[IllegalArgumentException](message = "requirement failed: No routes declared")
     }
 
     "allow the HttpRouting to be configured with its own failure handling" in new Context {
@@ -42,7 +42,7 @@ class SprayBootSpec extends Specification {
 
       class TestException(s: String) extends Exception(s)
 
-      bootRoutings(ExampleRouting)(FailureHandling.exceptionHandler)
+      bootRoutings(Seq(ExampleRouting))(FailureHandling.exceptionHandler)
       ok
     }
   }

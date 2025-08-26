@@ -1,6 +1,6 @@
 package uk.gov.homeoffice.akka.schedule
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 
 /**
  * Why provide a "no scheduling" such that a scheduling Actor will not "wake up" and perform its duties?

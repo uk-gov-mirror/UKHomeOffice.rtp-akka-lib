@@ -3,22 +3,24 @@ package uk.gov.homeoffice.spray
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import akka.actor.{ActorRef, ActorSystem, Props, Terminated}
-import akka.io.IO
-import akka.pattern.ask
-import akka.util.Timeout
-import org.json4s.JValue
+import org.apache.pekko.actor._
+import org.apache.pekko.stream.ActorMaterializer
+import org.apache.pekko.pattern.ask
+import org.apache.pekko.util.Timeout
 import org.json4s.jackson.JsonMethods._
 import grizzled.slf4j.Logging
-import spray.can.Http
-import spray.can.server.Stats
-import spray.http.HttpMethods.GET
-import spray.http.MediaTypes._
-import spray.http.StatusCodes.OK
-import spray.http.{HttpEntity, HttpRequest, HttpResponse, Uri}
-import spray.routing._
-import uk.gov.homeoffice.configuration.{ConfigFactorySupport, HasConfig}
-import uk.gov.homeoffice.duration._
+import org.apache.pekko.http.scaladsl._
+import org.apache.pekko.http.scaladsl.model._
+import org.apache.pekko.http.scaladsl.server._
+import org.apache.pekko.http.scaladsl.server.Directives._
+import org.apache.pekko.http.scaladsl.model.StatusCodes._
+import org.apache.pekko.http.scaladsl.model.HttpEntity._
+import org.apache.pekko.http.scaladsl.settings._
+import uk.gov.homeoffice.configuration.HasConfig
+import scala.annotation.tailrec
+
+import scala.util.Try
+import org.json4s._
 
 /**
   * Boot your application with your required routings e.g.
@@ -33,77 +35,79 @@ import uk.gov.homeoffice.duration._
   * In order to add customisations, provide "bootRoutings" a seconds argument list for required exception and/or rejection handling.
   * Note that the method bootHttpService actually boots the services of the routings and this can be switched off for testing by overridding and doing nothing.
   */
-trait SprayBoot extends HttpService with RouteConcatenation with HasConfig with ConfigFactorySupport with Logging {
+trait SprayBoot extends RouteConcatenation with HasConfig with Logging {
   this: App =>
 
-  implicit lazy val actorRefFactory = {
-    sys addShutdownHook spraySystemShutdownHook
-    sprayActorSystem
-  }
+  def bootRoutings(allRoutes: Seq[Routing])
+      (implicit exceptionHandler: ExceptionHandler = ExceptionHandler.default(RoutingSettings(config)),
+        rejectionHandler: RejectionHandler = RejectionHandler.default): Unit = {
 
-  def sprayActorSystem: ActorSystem
+    require(allRoutes.nonEmpty, "No routes declared")
+    info(s"""Booting ${allRoutes.size} ${if (allRoutes.size > 1) "routes" else "route"}""")
 
-  implicit def routing2Seq(r: Routing): Seq[Routing] = Seq(r)
-
-  def spraySystemShutdownHook: Future[Terminated] = actorRefFactory.terminate()
-
-  def bootRoutings(routings: Seq[Routing])(implicit exceptionHandler: ExceptionHandler = ExceptionHandler.default,
-                                                    rejectionHandler: RejectionHandler = RejectionHandler.Default): Unit = {
-    require(routings.nonEmpty, "No routes declared")
-    info(s"""Booting ${routings.size} ${if (routings.size > 1) "routes" else "route"}""")
-
-    val routes = routings.tail.foldLeft(routings.head.route) { (route, routing) => route ~ routing.route }
-
-    val routeHttpService = actorRefFactory.actorOf(HttpRouting.props(routes)(exceptionHandler, rejectionHandler),
-                                                   config.text("spray.can.server.service", "http-routing-service"))
-
-    bootHttpService(routeHttpService)
-  }
-
-  def bootHttpService(routeHttpService: ActorRef): Unit = {
-    IO(Http) ! Http.Bind(listener = routeHttpService,
-                         interface = config.text("spray.can.server.host", "0.0.0.0"),
-                         port = config.int("spray.can.server.port", 9100))
-
-    sys addShutdownHook {
-      implicit val timeout: Timeout = Timeout(30 seconds)
-
-      IO(Http) ? Http.CloseAll
-    }
-  }
-
-  private object HttpRouting {
-    def props(route: Route)(implicit eh: ExceptionHandler, rh: RejectionHandler) = Props(new HttpRouting(route)(eh, rh))
-  }
-
-  private class HttpRouting(route: Route)(implicit eh: ExceptionHandler, rh: RejectionHandler) extends HttpServiceActor {
-    implicit val timeout: Timeout = Timeout(30 seconds)
-
-    def receive: Receive = statisticsReceive orElse routesReceive
-
-    def statisticsReceive: Receive = {
-      case HttpRequest(GET, Uri.Path("/service-statistics"), _, _, _) =>
-        val client = sender()
-
-        context.actorSelection("/user/IO-HTTP/listener-0") ? Http.GetStats onSuccess {
-          case s: Stats =>
-            val json: JValue = parse(s"""{
-              "statistics": {
-                "uptime": "${s.uptime.toPrettyString}",
-                "total-requests": "${s.totalRequests}",
-                "open-requests": "${s.openRequests}",
-                "maximum-open-requests": "${s.maxOpenRequests}",
-                "total-connections": "${s.totalConnections}",
-                "open-connections": "${s.openConnections}",
-                "max-open-connections": "${s.maxOpenConnections}",
-                "request-timeouts": "${s.requestTimeouts}"
-              }
-            }""")
-
-            client ! HttpResponse(OK, HttpEntity(`application/json`, pretty(render(json))))
-        }
+    @scala.annotation.tailrec
+    def combine(allRoutes :Seq[Routing], mergedRoute :Route) :Route = allRoutes match {
+      case Nil => mergedRoute
+      case head :: tail => combine(tail, mergedRoute ~ head.route)
     }
 
-    def routesReceive: Receive = runRoute(route)
+    val completeChain = combine(allRoutes.tail, allRoutes.head.route)
+
+    val rejectionHandler = RejectionHandler
+      .newBuilder()
+      .handle {
+        case MalformedRequestContentRejection(_,_) =>
+          info(s"rejecting request: malformed request")
+          complete(HttpResponse(
+            status = BadRequest,
+            entity = HttpEntity(ContentTypes.`application/json`, compact(render(JObject(
+              "status" -> JString("ERROR"),
+              "error" -> JString("CONTENT_TYPE_NOT_JSON")
+            ))))
+          ))
+      }
+      .handle {
+        case AuthorizationFailedRejection =>
+          info(s"rejecting request: authorisation failed")
+          complete(HttpResponse(
+            status=Forbidden,
+            entity = HttpEntity(ContentTypes.`application/json`, compact(render(JObject(
+              "status" -> JString("ERROR"),
+              "error" -> JString("FORBIDDEN")
+            ))))
+          ))
+      }
+      .handleNotFound { ctx =>
+          info(s"rejecting request: 404 not found: ${ctx.request.uri.toString()}")
+          ctx.complete(HttpResponse(
+            status = NotFound,
+            entity = HttpEntity(ContentTypes.`application/json`, compact(render(JObject(
+              "status" -> JString("ERROR"),
+              "error" -> JString("NOT_FOUND")
+            ))))
+          ))
+      }
+      .result()
+
+    val route = handleRejections(rejectionHandler) { completeChain }
+    bootHttpService(route)
   }
+
+  val globalActorSystem = ActorSystem("evw-integration-actor-system", config)
+  sys.addShutdownHook({
+    globalActorSystem.terminate()
+  })
+
+  def bootHttpService(route: Route): Unit = {
+
+    import org.apache.pekko.http.scaladsl.server._
+    implicit val ac :ActorSystem = globalActorSystem
+    //implicit val materializer = ActorMaterializer()
+    val interface = Try(config.getString("spray.can.server.host")).toOption.getOrElse("0.0.0.0")
+    val port = Try(config.getInt("spray.can.server.port")).toOption.getOrElse(9100)
+    Http().newServerAt(interface, port).bind(route)
+    info(s"Bound to /$interface:$port")
+
+  }
+
 }

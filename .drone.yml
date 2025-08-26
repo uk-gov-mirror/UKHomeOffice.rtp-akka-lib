@@ -9,37 +9,70 @@ platform:
 
 steps:
 - name: build
-  pull: if-not-exists
-  image: quay.io/ukhomeofficedigital/scala-sbt:v0.3.1
+  pull: Always
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/rtge/scala-sbt:latest
   commands:
-  - /root/entrypoint.sh
+  - . /app/entrypoint.sh
   - git fetch --tags
-  - sbt clean test
+  - sbt clean coverageEnabled test coverageReport coverageOff
+  - sbt scalastyle | true
+  - sbt scapegoat | true
+  - sbt test
   environment:
     ARTIFACTORY_PASSWORD:
       from_secret: ARTIFACTORY_PASSWORD
     ARTIFACTORY_USERNAME: regt-build-bot
+    JRE_VERSION: 21
+    OVERRIDE_BUILD_REPOS: "false"
+    HOME: "/app"
   when:
     event:
     - push
     - tag
 
+- name: dependency_check
+  pull: Always
+  image: owasp/dependency-check:latest
+  commands:
+    - "/usr/share/dependency-check/bin/dependency-check.sh --scan . --nvdApiKey $NVD_API_KEY || /bin/true"
+  environment:
+    NVD_API_KEY:
+      from_secret: NVD_API_KEY
+  when:
+    event:
+    - push
+  depends_on:
+    - build
+
+- name: sonar_scanner
+  pull: if-not-exists
+  image: quay.io/ukhomeofficedigital/sonar-scanner:v4.6
+  commands:
+  - sonar-scanner
+  when:
+    event:
+    - push
+    - tag
+  depends_on:
+    - dependency_check
+
 - name: publish
   pull: if-not-exists
-  image: quay.io/ukhomeofficedigital/scala-sbt:v0.3.1
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/rtge/scala-sbt:latest
   commands:
-  - /root/entrypoint.sh
+  - . /app/entrypoint.sh
   - sbt +publish
   environment:
     ARTIFACTORY_PASSWORD:
       from_secret: ARTIFACTORY_PASSWORD
     ARTIFACTORY_SERVER: https://artifactory.digital.homeoffice.gov.uk/
     ARTIFACTORY_USERNAME: regt-build-bot
+    JRE_VERSION: 21
+    OVERRIDE_BUILD_REPOS: "false"
   when:
-    branch:
-    - master
     event:
     - push
     - tag
+  depends_on:
+    - sonar_scanner
 
-...

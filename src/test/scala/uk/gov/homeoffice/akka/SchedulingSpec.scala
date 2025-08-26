@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import akka.actor.{Actor, Props}
+import org.apache.pekko.actor.{Actor, Props}
 import org.specs2.mutable.Specification
 import uk.gov.homeoffice.akka.schedule.Protocol.{Scheduled, Wakeup}
 import uk.gov.homeoffice.akka.schedule.{NoScheduling, Schedule, Scheduling}

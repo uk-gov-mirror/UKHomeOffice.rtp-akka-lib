@@ -1,7 +1,9 @@
 package uk.gov.homeoffice.akka
 
-import akka.actor.{Actor, Props}
+import org.apache.pekko.actor.{Actor, Props}
+import org.apache.pekko.actor.{Actor, Props}
 import org.specs2.mutable.Specification
+import org.apache.pekko.http.scaladsl.testkit._
 
 class ActorSystemSpec extends Specification with ActorSystemSpecification {
   case object ReactTo
@@ -39,7 +41,7 @@ class ActorSystemSpec extends Specification with ActorSystemSpecification {
       val actor = system actorOf Props { new TestActor }
 
       actor ! "Ignore"
-      expectNoMsg
+      expectNoMsg()
     }
 
     "response" in new ActorSystemContext {

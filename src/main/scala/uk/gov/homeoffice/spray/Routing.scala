@@ -1,16 +1,17 @@
 package uk.gov.homeoffice.spray
 
-import spray.httpx.Json4sSupport
-import spray.routing._
+//import spray.httpx.Json4sSupport
+//import org.apache.pekko.http.scaladsl.routing._
 import uk.gov.homeoffice.json.JsonFormats
-
+import org.apache.pekko.http.scaladsl.server._
+import org.apache.pekko.http.scaladsl.marshalling._
 /**
  * Mix this trait into your "Routing" to define endpoints.
  * Note that Marshallers provides some implicit functionality to handle responses to clients calling endpoints.
  * Even though custom code can be created to handle the responses, the implicits can automatically handle JsonError responses, which is a good default for Routings that deal mainly with JSON.
  * See Marshallers ScalaDoc for more information.
  */
-trait Routing extends Directives with Marshallers with JsonFormats with Json4sSupport {
+trait Routing extends Directives with GenericMarshallers with JsonFormats with Json4sSupport {
   def route: Route
 }
 
