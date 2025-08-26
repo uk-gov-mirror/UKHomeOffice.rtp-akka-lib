@@ -34,10 +34,7 @@ steps:
   pull: Always
   image: owasp/dependency-check:latest
   commands:
-    - "/usr/share/dependency-check/bin/dependency-check.sh --scan . --nvdApiKey $NVD_API_KEY || /bin/true"
-  environment:
-    NVD_API_KEY:
-      from_secret: NVD_API_KEY
+    - "/usr/share/dependency-check/bin/dependency-check.sh --scan . || /bin/true"
   when:
     event:
     - push
