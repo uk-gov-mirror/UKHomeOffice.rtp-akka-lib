@@ -3,7 +3,6 @@ package uk.gov.homeoffice.spray
 import scala.concurrent.duration._
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.http.scaladsl.testkit._
-//import org.apache.pekko.routing.HttpService
 import org.specs2.mutable.SpecificationLike
 import uk.gov.homeoffice.json.JsonFormats
 import org.apache.pekko.testkit.TestDuration._

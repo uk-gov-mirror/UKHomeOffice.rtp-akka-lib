@@ -19,7 +19,5 @@ trait Json4sSupport {
     )
   }
 
-  //implicit val jObjectUnmarshaller :StringUnmarshaller[String, JObject] =
-  //  StringUnmarshaller.sync(parse(_))
 }
 

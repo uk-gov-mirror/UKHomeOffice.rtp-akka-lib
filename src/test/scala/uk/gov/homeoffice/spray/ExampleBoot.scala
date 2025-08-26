@@ -9,7 +9,6 @@ import org.apache.pekko.http.scaladsl.model.MediaTypes._
 import org.apache.pekko.http.scaladsl.model.StatusCodes._
 import org.apache.pekko.http.scaladsl.model.{HttpEntity, HttpResponse}
 import org.json4s._
-//import org.apache.pekko.http.routing._
 import uk.gov.homeoffice.configuration.HasConfig
 import uk.gov.homeoffice.json.JsonFormats
 import org.apache.pekko.http.scaladsl.server._

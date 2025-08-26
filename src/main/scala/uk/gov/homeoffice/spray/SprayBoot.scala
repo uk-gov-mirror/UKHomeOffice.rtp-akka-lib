@@ -102,7 +102,6 @@ trait SprayBoot extends RouteConcatenation with HasConfig with Logging {
 
     import org.apache.pekko.http.scaladsl.server._
     implicit val ac :ActorSystem = globalActorSystem
-    //implicit val materializer = ActorMaterializer()
     val interface = Try(config.getString("spray.can.server.host")).toOption.getOrElse("0.0.0.0")
     val port = Try(config.getInt("spray.can.server.port")).toOption.getOrElse(9100)
     Http().newServerAt(interface, port).bind(route)

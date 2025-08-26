@@ -20,6 +20,7 @@ class ExampleRoutingSpec extends Specification with RouteSpecification {
       Get("/example") ~> route ~> check {
         status mustEqual OK
         contentType.mediaType mustEqual `application/json`
+        // TODO: Consider reinstating by providing unmarshaller in Json4Support trait
         //(responseAs[JValue] \ "status").extract[String] mustEqual "Congratulations"
       }
     }

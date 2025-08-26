@@ -10,11 +10,9 @@ trait ExampleRouting extends Routing {
    pathPrefix("example") {
      pathEndOrSingleSlash {
        get {
-         //respondWithMediaType(`application/json`) {
-           complete {
-             JObject("status" -> JString("Congratulations"))
-           }
-         //}
+         complete {
+           JObject("status" -> JString("Congratulations"))
+         }
        }
      } ~
      post {
