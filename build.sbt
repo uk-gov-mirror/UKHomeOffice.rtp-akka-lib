@@ -9,7 +9,7 @@ val root = Project(id = moduleName, base = file("."))
     name := moduleName,
     organization := "uk.gov.homeoffice",
     scalaVersion := "3.3.5",
-    crossScalaVersions := Seq("2.13.16"),
+    crossScalaVersions := Seq("3.3.5", "2.13.16"),
     scalacOptions ++= Seq(
       "-feature",
       "-language:implicitConversions",
