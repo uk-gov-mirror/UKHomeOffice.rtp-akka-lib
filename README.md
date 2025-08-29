@@ -1,5 +1,9 @@
-Akka - Reusable functionality
-=============================
+
+# Akka - Reusable functionality
+===============================
+
+### 2025-08-29: The maintainers of this library have stopped
+### using it and it will no longer be maintained going forwards.
 
 Akka reusable functionality and Scala Spray functionality/template for general use.
 
