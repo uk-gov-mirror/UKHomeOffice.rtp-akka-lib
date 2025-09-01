@@ -71,5 +71,5 @@ steps:
     - push
     - tag
   depends_on:
-    - sonar_scanner
+    - build
 
