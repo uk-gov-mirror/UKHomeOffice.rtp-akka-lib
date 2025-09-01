@@ -1,22 +1,24 @@
 package uk.gov.homeoffice.spray
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
+import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory._
 import org.json4s.JsonAST.{JObject, JString}
 import org.json4s.jackson.JsonMethods._
-import spray.http.MediaTypes._
-import spray.http.StatusCodes._
-import spray.http.{HttpEntity, HttpResponse}
-import spray.httpx.Json4sSupport
-import spray.routing._
+import org.apache.pekko.http.scaladsl.model.MediaTypes._
+import org.apache.pekko.http.scaladsl.model.StatusCodes._
+import org.apache.pekko.http.scaladsl.model.{HttpEntity, HttpResponse}
+import org.json4s._
 import uk.gov.homeoffice.configuration.HasConfig
 import uk.gov.homeoffice.json.JsonFormats
+import org.apache.pekko.http.scaladsl.server._
+import org.apache.pekko.http.scaladsl.marshalling._
 
 /**
   * Example of booting a Spray microservice
   */
 object ExampleBoot extends App with SprayBoot with ExampleConfig {
-  implicit lazy val sprayActorSystem = ActorSystem("example-boot-actor-system")
+  implicit lazy val sprayActorSystem :ActorSystem = ActorSystem("example-boot-actor-system")
 
   bootRoutings(ExampleRouting1 ~ ExampleRouting2 ~ ExampleRoutingError)(FailureHandling.exceptionHandler)
 }
@@ -27,7 +29,7 @@ object ExampleBoot extends App with SprayBoot with ExampleConfig {
 trait ExampleConfig {
   this: HasConfig =>
 
-  override implicit val config = load(parseString("""
+  override implicit val config :Config = load(parseString("""
     spray.can.server {
       name = "example-spray-can"
       host = "0.0.0.0"
@@ -44,7 +46,7 @@ trait ExampleConfig {
   */
 object ExampleRouting1 extends ExampleRouting1
 
-trait ExampleRouting1 extends Routing {
+trait ExampleRouting1 extends Routing with Json4sSupport {
   val route =
     pathPrefix("example1") {
       pathEndOrSingleSlash {
@@ -61,7 +63,7 @@ trait ExampleRouting1 extends Routing {
   */
 object ExampleRouting2 extends ExampleRouting2
 
-trait ExampleRouting2 extends Routing {
+trait ExampleRouting2 extends Routing with Json4sSupport {
   val route =
     pathPrefix("example2") {
       pathEndOrSingleSlash {
@@ -91,7 +93,7 @@ trait ExampleRoutingError extends Routing {
 /**
   * Example of specific handing of failures
   */
-object FailureHandling extends Directives with JsonFormats with Json4sSupport {
+object FailureHandling extends Directives with JsonFormats with Json4sSupport  {
   val exceptionHandler = ExceptionHandler {
     case e: TestException => complete {
       HttpResponse(status = InternalServerError, entity = HttpEntity(`application/json`, pretty(render(JObject("test" -> JString(e.getMessage))))))

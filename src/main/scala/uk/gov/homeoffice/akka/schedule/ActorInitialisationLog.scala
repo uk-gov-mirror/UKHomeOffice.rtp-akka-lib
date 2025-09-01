@@ -1,7 +1,7 @@
 package uk.gov.homeoffice.akka.schedule
 
-import akka.actor.{Actor, ActorLogging}
-import akka.serialization.Serialization._
+import org.apache.pekko.actor.{Actor, ActorLogging}
+import org.apache.pekko.serialization.Serialization._
 
 trait ActorInitialisationLog {
   this: Actor with ActorLogging =>

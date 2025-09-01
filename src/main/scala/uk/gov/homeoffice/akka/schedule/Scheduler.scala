@@ -2,17 +2,16 @@ package uk.gov.homeoffice.akka.schedule
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import akka.actor._
-import uk.gov.homeoffice.configuration.ConfigFactorySupport
+import org.apache.pekko.actor._
 
-trait Scheduler extends ActorLogging with ActorInitialisationLog with ConfigFactorySupport {
+trait Scheduler extends ActorLogging with ActorInitialisationLog {
   this: Actor =>
 
   private var cancellable: Cancellable = _
 
   val schedule: Cancellable
 
-  def schedule(initialDelay: Duration = 0 seconds, interval: Duration, receiver: ActorRef = self, message: Any = Protocol.Schedule) =
+  def schedule(initialDelay: FiniteDuration = 0 seconds, interval: FiniteDuration, receiver: ActorRef = self, message: Any = Protocol.Schedule) =
     context.system.scheduler.schedule(initialDelay, interval, receiver, message)
 
   override def preStart(): Unit = cancellable = schedule

@@ -3,6 +3,7 @@ package spray.testkit
 import org.specs2.execute.{ Failure, FailureException }
 import org.specs2.specification.core.{ Fragments, SpecificationStructure }
 import org.specs2.specification.create.DefaultFragmentFactory
+import org.apache.pekko.http.scaladsl.testkit._
 
 /**
  * Spray's built-in support for specs2 is built against specs2 2.x, not 3.x.
@@ -21,7 +22,4 @@ trait Specs2Interface extends TestFrameworkInterface with SpecificationStructure
 }
 
 trait NoAutoHtmlLinkFragments extends org.specs2.specification.dsl.ReferenceDsl {
-  override def linkFragment(alias: String) = super.linkFragment(alias)
-
-  override def seeFragment(alias: String) = super.seeFragment(alias)
 }

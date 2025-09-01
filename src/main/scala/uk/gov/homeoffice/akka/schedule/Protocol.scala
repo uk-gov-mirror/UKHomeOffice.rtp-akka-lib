@@ -1,6 +1,6 @@
 package uk.gov.homeoffice.akka.schedule
 
-import akka.actor.ActorPath
+import org.apache.pekko.actor.ActorPath
 
 object Protocol {
   case object Schedule

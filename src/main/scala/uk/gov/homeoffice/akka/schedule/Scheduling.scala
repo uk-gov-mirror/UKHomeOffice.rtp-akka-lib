@@ -3,7 +3,7 @@ package uk.gov.homeoffice.akka.schedule
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import akka.actor.{Actor, ActorLogging}
+import org.apache.pekko.actor.{Actor, ActorLogging}
 import uk.gov.homeoffice.akka.schedule.Protocol.{Scheduled, Wakeup}
 
 trait Scheduling[R] extends ActorLogging with ActorInitialisationLog {
